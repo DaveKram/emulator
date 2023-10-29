@@ -12,19 +12,19 @@ enum Error {
 }
 
 pub struct CPU {
-    reg_pc: u16,            //Program counter
-    reg_sp: u8,             //Stack pointer
-    reg_accum: u8,          //Accumulator
-    reg_index_x: u8,        //Index Register X
-    reg_index_y: u8,        //Index Register Y
-    reg_ps_cf: u8,          //Processor Status carry flag
-    reg_ps_zf: u8,          //Processor Status zero flag
-    reg_ps_id: u8,          //Processor Status interrupt disable
-    reg_ps_dm: u8,          //Processor Status decimal mode
-    reg_ps_bc: u8,          //Processor Status break command
-    reg_ps_of: u8,          //Processor Status overflow flag
-    reg_ps_nf: u8,          //Processor Status negative flag
-    reg_ps_un: u8,          //Processor Status unused flag
+    pub reg_pc: u16,            //Program counter
+    pub reg_sp: u8,             //Stack pointer
+    pub reg_accum: u8,          //Accumulator
+    pub reg_index_x: u8,        //Index Register X
+    pub reg_index_y: u8,        //Index Register Y
+    pub reg_ps_cf: u8,          //Processor Status carry flag
+    pub reg_ps_zf: u8,          //Processor Status zero flag
+    pub reg_ps_id: u8,          //Processor Status interrupt disable
+    pub reg_ps_dm: u8,          //Processor Status decimal mode
+    pub reg_ps_bc: u8,          //Processor Status break command
+    pub reg_ps_of: u8,          //Processor Status overflow flag
+    pub reg_ps_nf: u8,          //Processor Status negative flag
+    pub reg_ps_un: u8,          //Processor Status unused flag
     do_halt: bool           //To halt or not
 }
 
