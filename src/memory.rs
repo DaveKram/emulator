@@ -22,7 +22,7 @@ impl Memory {
         }
     }
 
-    fn read_byte(&self, addr: u16) -> Result<u8, Error> {
+    pub fn read_byte(&self, addr: u16) -> Result<u8, Error> {
         let index = addr as usize;
         if index > MAX_MEMORY_SIZE_BYTES {
             Err(Error::READ_OUT_OF_BOUNDS)
@@ -31,22 +31,16 @@ impl Memory {
         }
     }
 
-    pub fn read_inst(&self, addr: u16) -> Result<u16, Error> {
-        let byte1 = self.read_byte(addr);
-        let byte2 = self.read_byte(addr + 1);
-
-        if byte1.is_ok() && byte2.is_ok() {
-            let byte_res: u16 = (((byte1.unwrap() as u16) << 8) | (byte2.unwrap() as u16)) as u16;
-            Ok(byte_res)
-        } else {
-            if byte1.is_err() {
-                Err(byte1.err().unwrap())
-            }else if byte2.is_err() {
-                Err(byte2.err().unwrap())
+    pub fn read_n_bytes(&self, addr: u16, size: usize) -> Result<Vec<u8>, Error> {
+        let mut output: Vec<u8> = Vec::new();
+        for i in 0..size {
+            if let Ok(byte) = self.read_byte(addr + (i as u16)) {
+                output.push(byte);
             }else{
-                Err(Error::READ_OUT_OF_BOUNDS)
+                return Err(Error::READ_OUT_OF_BOUNDS)
             }
         }
+        Ok(output)
     }
 
     pub fn write_byte(&mut self, addr: u16, data: u8) -> Result<(), Error> {
