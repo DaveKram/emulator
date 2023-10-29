@@ -91,7 +91,7 @@ impl CPU {
         }
     }
 
-    fn execute(&mut self, inst: &Instruction) {
+    fn execute(&mut self, inst: &Instruction, mem: &mut Memory) {
         match inst.inst {
             InstructionTypes::LDA_IMMEDIATE => {
                 println!("Instruction: LDA Immediate");
@@ -101,18 +101,21 @@ impl CPU {
             },
             InstructionTypes::STA_ABSOLUTE => {
                 println!("Instruction: STA Absolute");
-                //TODO:
-                //TODO: CPU status registers
-                self.reg_pc += 3;
+                if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum) {
+                    //TODO: CPU status registers
+                    self.reg_pc += 3;
+                }else{
+                    //TODO: Read fails?
+                }
             }
         }
     }
 
-    pub fn step(&mut self, mem_ref: &Memory) {
+    pub fn step(&mut self, mem_ref: &mut Memory) {
         //Fetch the next instruction and then number of cycles it takes
         if let Ok(inst) = self.fetch(mem_ref) {
             //Excute the instuction
-            self.execute(&inst);
+            self.execute(&inst, mem_ref);
         }else{
             println!("Error: Unknown instruction");
         }

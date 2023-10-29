@@ -43,13 +43,13 @@ impl Memory {
         Ok(output)
     }
 
-    pub fn write_byte(&mut self, addr: u16, data: u8) -> Result<(), Error> {
+    pub fn write_byte(&mut self, addr: u16, data: u8) -> Result<u8, Error> {
         let index = addr as usize;
         if index > MAX_MEMORY_SIZE_BYTES {
             Err(Error::WRITE_OUT_OF_BOUNDS)
         } else {
             self.mem[index] = data;
-            Ok(())
+            Ok(self.mem[index])
         }
     }
 
