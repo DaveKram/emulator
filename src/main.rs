@@ -13,7 +13,7 @@ fn main() {
     let mut debugger = debugger::Debugger::new(true);
 
     //Load program
-    if let Ok(_) = mem.load_program_from_file(0, "programs/test1.bin") {
+    if let Ok(_) = mem.load_program_from_file(0, "programs/nibbleswap.bin") {
         //Continue to execute instructions untilwe need to halt
         while !cpu.check_halt() {
             //Check to see if the debugger is enabled/disabled

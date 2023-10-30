@@ -3,7 +3,9 @@ use crate::memory::Memory;
 #[derive(Debug)]
 enum InstructionTypes {
     LDA_IMMEDIATE,
-    STA_ABSOLUTE
+    STA_ABSOLUTE,
+    ASL_ACCUMULATOR,
+    ADC_IMMEDIATE,
 }
 
 enum Error {
@@ -25,7 +27,7 @@ pub struct CPU {
     pub reg_ps_of: u8,          //Processor Status overflow flag
     pub reg_ps_nf: u8,          //Processor Status negative flag
     pub reg_ps_un: u8,          //Processor Status unused flag
-    do_halt: bool           //To halt or not
+    do_halt: bool               //To halt or not
 }
 
 #[derive(Debug)]
@@ -81,8 +83,21 @@ impl CPU {
                     }else{
                         Err(Error::FETCH_ERROR)
                     }
+                },
+                0x0A => {
+                    // 1 bytes total
+                    Ok(Instruction { inst: InstructionTypes::ASL_ACCUMULATOR, data: vec![inst], num_cycles: 2 })
+                },
+                0x69 => {
+                    // 2 bytes total
+                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1) {
+                        Ok(Instruction { inst: InstructionTypes::ADC_IMMEDIATE, data: data_bytes, num_cycles: 2 })
+                    }else{
+                        Err(Error::FETCH_ERROR)
+                    }
                 }
                 _ => {
+                    println!("Error: Unknown instruction. Opcode: {:#04x}", inst);
                     Err(Error::FETCH_ERROR_UNKNOWN_INST)
                 }
             }
@@ -107,6 +122,18 @@ impl CPU {
                 }else{
                     //TODO: Read fails?
                 }
+            },
+            InstructionTypes::ASL_ACCUMULATOR => {
+                println!("Instruction: ASL Accumulator");
+                self.reg_accum <<= self.reg_accum; //TODO: Is this right?
+                //TODO: CPU status registers
+                self.reg_pc += 1;
+            },
+            InstructionTypes::ADC_IMMEDIATE => {
+                println!("Instruction: ADC Immediate");
+                //TODO
+                //TODO: CPU status registers
+                self.reg_pc += 2;
             }
         }
     }
@@ -116,8 +143,6 @@ impl CPU {
         if let Ok(inst) = self.fetch(mem_ref) {
             //Excute the instuction
             self.execute(&inst, mem_ref);
-        }else{
-            println!("Error: Unknown instruction");
         }
     }
 }
