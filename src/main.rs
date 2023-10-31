@@ -3,6 +3,13 @@ mod debugger;
 mod memory;
 
 fn main() {
+    
+    //Startup print
+    println!("======================================");
+    println!("6502 Emulator");
+    println!("======================================");
+
+
     //Create the memory
     let mut mem = memory::Memory::new();
 

@@ -6,6 +6,7 @@ enum InstructionTypes {
     STA_ABSOLUTE,
     ASL_ACCUMULATOR,
     ADC_IMMEDIATE,
+    ROL_IMMEDIATE
 }
 
 enum Error {
@@ -65,6 +66,25 @@ impl CPU {
         self.do_halt = true;
     }
 
+    fn update_status_regs(&mut self, res: u8) 
+    {
+        //Set negative flag - reg_ps_nf
+        //If high bit set, then negative flag is set
+        if (res & 0x80) == 0x80 {
+            self.reg_ps_nf = 1;
+        }else{
+            self.reg_ps_nf = 0;
+        }
+
+        //Set zero flag - reg_ps_zf
+        //If res is 0, then flag is 1, otherwise it is 0
+        if res == 0 {
+            self.reg_ps_zf = 1;
+        }else{
+            self.reg_ps_zf = 0;
+        }
+    }
+
     fn fetch(&self, mem: &Memory) -> Result<Instruction, Error> {
         if let Ok(inst) = mem.read_byte(self.reg_pc) {
             match inst {
@@ -95,6 +115,10 @@ impl CPU {
                     }else{
                         Err(Error::FETCH_ERROR)
                     }
+                },
+                0x2A => {
+                    // 1 bytes total
+                    Ok(Instruction { inst: InstructionTypes::ROL_IMMEDIATE, data: vec![inst], num_cycles: 2 })
                 }
                 _ => {
                     println!("Error: Unknown instruction. Opcode: {:#04x}", inst);
@@ -111,13 +135,13 @@ impl CPU {
             InstructionTypes::LDA_IMMEDIATE => {
                 println!("Instruction: LDA Immediate");
                 self.reg_accum = inst.data[0] as u8;
-                //TODO: CPU status registers
+                self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
             },
             InstructionTypes::STA_ABSOLUTE => {
                 println!("Instruction: STA Absolute");
                 if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum) {
-                    //TODO: CPU status registers
+                    self.update_status_regs(self.reg_accum);
                     self.reg_pc += 3;
                 }else{
                     //TODO: Read fails?
@@ -126,14 +150,20 @@ impl CPU {
             InstructionTypes::ASL_ACCUMULATOR => {
                 println!("Instruction: ASL Accumulator");
                 self.reg_accum <<= self.reg_accum; //TODO: Is this right?
-                //TODO: CPU status registers
+                self.update_status_regs(self.reg_accum);
                 self.reg_pc += 1;
             },
             InstructionTypes::ADC_IMMEDIATE => {
                 println!("Instruction: ADC Immediate");
-                //TODO
-                //TODO: CPU status registers
+                self.reg_accum += inst.data[0] as u8;
+                self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
+            },
+            InstructionTypes::ROL_IMMEDIATE => {
+                println!("Instruction: ROL Immediate");
+                self.reg_accum <<= 1; //TODO: Is this right?
+                self.update_status_regs(self.reg_accum);
+                self.reg_pc += 1;
             }
         }
     }
