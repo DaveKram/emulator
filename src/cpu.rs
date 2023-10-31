@@ -44,7 +44,7 @@ impl CPU {
     pub fn new() -> CPU {
         CPU {
             reg_pc: 0,
-            reg_sp: 0,
+            reg_sp: 0xFF,
             reg_accum: 0,
             reg_index_x: 0,
             reg_index_y: 0,
@@ -147,9 +147,19 @@ impl CPU {
         match inst.inst {
             InstructionTypes::BRK => {
                 println!("CPU> Instruction: BRK - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
-                //TODO: More than this
-                self.reg_ps_bc = 1;
-                self.reg_pc += 1;
+                
+                //TODO: Figure out if this is writing into the right order in memory (note the stack starts at the end and decreases the sp)
+                let pc_plus_two = self.reg_pc + 2;
+                let status_reg: u8 = 0; //TODO: Create status register from CPU struct
+                let bytes_to_push_on_stack = vec![(pc_plus_two & 0x00FF) as u8, ((pc_plus_two & 0xFF00) >> 8) as u8, status_reg];
+                if let Ok(_) = mem.push_onto_stack(self.reg_sp, &bytes_to_push_on_stack) {
+                    self.reg_sp -= 3;
+                    self.reg_ps_bc = 1;
+                    self.reg_pc += 1; //TODO: Note, this may need to be set before the attempt to actually push it onto the stack? Since the status register is part of the stack data
+                }else{
+                    //TODO: Push onto stack fails
+                    println!("CPU> BRK push onto stack failed");
+                }
             },
             InstructionTypes::LDA_IMMEDIATE => {
                 println!("CPU> Instruction: LDA Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
@@ -163,7 +173,8 @@ impl CPU {
                     self.update_status_regs(self.reg_accum);
                     self.reg_pc += 3;
                 }else{
-                    //TODO: Read fails?
+                    //TODO: Write fails?
+                    println!("CPU> STA absolute write failed");
                 }
             },
             InstructionTypes::ASL_ACCUMULATOR => {
