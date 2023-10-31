@@ -29,7 +29,8 @@ pub struct CPU {
     pub reg_ps_of: u8,          //Processor Status overflow flag
     pub reg_ps_nf: u8,          //Processor Status negative flag
     pub reg_ps_un: u8,          //Processor Status unused flag
-    do_halt: bool               //To halt or not
+    do_halt: bool,              //To halt or not
+    total_cycles: u64           //Total number of cycles ran
 }
 
 #[derive(Debug)]
@@ -55,7 +56,8 @@ impl CPU {
             reg_ps_of: 0,
             reg_ps_nf: 0,
             reg_ps_un: 1,
-            do_halt: false
+            do_halt: false,
+            total_cycles: 0
         }
     }
 
@@ -141,21 +143,22 @@ impl CPU {
     }
 
     fn execute(&mut self, inst: &Instruction, mem: &mut Memory) {
+        self.total_cycles += inst.num_cycles as u64;
         match inst.inst {
             InstructionTypes::BRK => {
-                println!("CPU> Instruction: BRK");
+                println!("CPU> Instruction: BRK - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 //TODO: More than this
                 self.reg_ps_bc = 1;
                 self.reg_pc += 1;
             },
             InstructionTypes::LDA_IMMEDIATE => {
-                println!("CPU> Instruction: LDA Immediate");
+                println!("CPU> Instruction: LDA Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 self.reg_accum = inst.data[0] as u8;
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
             },
             InstructionTypes::STA_ABSOLUTE => {
-                println!("CPU> Instruction: STA Absolute");
+                println!("CPU> Instruction: STA Absolute - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum) {
                     self.update_status_regs(self.reg_accum);
                     self.reg_pc += 3;
@@ -164,19 +167,19 @@ impl CPU {
                 }
             },
             InstructionTypes::ASL_ACCUMULATOR => {
-                println!("CPU> Instruction: ASL Accumulator");
+                println!("CPU> Instruction: ASL Accumulator - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 self.reg_accum <<= self.reg_accum; //TODO: Is this right?
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 1;
             },
             InstructionTypes::ADC_IMMEDIATE => {
-                println!("CPU> Instruction: ADC Immediate");
+                println!("CPU> Instruction: ADC Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 self.reg_accum += inst.data[0] as u8;
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
             },
             InstructionTypes::ROL_IMMEDIATE => {
-                println!("CPU> Instruction: ROL Immediate");
+                println!("CPU> Instruction: ROL Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
                 self.reg_accum <<= 1; //TODO: Is this right?
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 1;
