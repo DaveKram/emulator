@@ -2,6 +2,7 @@ use crate::memory::Memory;
 
 #[derive(Debug)]
 enum InstructionTypes {
+    BRK,
     LDA_IMMEDIATE,
     STA_ABSOLUTE,
     ASL_ACCUMULATOR,
@@ -50,7 +51,7 @@ impl CPU {
             reg_ps_zf: 1,
             reg_ps_id: 1,
             reg_ps_dm: 0,
-            reg_ps_bc: 1,
+            reg_ps_bc: 0,
             reg_ps_of: 0,
             reg_ps_nf: 0,
             reg_ps_un: 1,
@@ -68,6 +69,11 @@ impl CPU {
 
     fn update_status_regs(&mut self, res: u8) 
     {
+        //Reset BRK flag if it was 1 - reg_ps_bc
+        if self.reg_ps_bc == 1 {
+            self.reg_ps_bc = 0;
+        }
+
         //Set negative flag - reg_ps_nf
         //If high bit set, then negative flag is set
         if (res & 0x80) == 0x80 {
@@ -88,6 +94,10 @@ impl CPU {
     fn fetch(&self, mem: &Memory) -> Result<Instruction, Error> {
         if let Ok(inst) = mem.read_byte(self.reg_pc) {
             match inst {
+                0x0 => {
+                    //1 bytes total
+                    Ok(Instruction { inst: InstructionTypes::BRK, data: vec![inst], num_cycles: 7 })
+                }
                 0xA9 => {
                     // 2 bytes total
                     if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1) {
@@ -121,7 +131,7 @@ impl CPU {
                     Ok(Instruction { inst: InstructionTypes::ROL_IMMEDIATE, data: vec![inst], num_cycles: 2 })
                 }
                 _ => {
-                    println!("Error: Unknown instruction. Opcode: {:#04x}", inst);
+                    println!("CPU> Unknown instruction. Opcode: {:#04x}", inst);
                     Err(Error::FETCH_ERROR_UNKNOWN_INST)
                 }
             }
@@ -132,14 +142,20 @@ impl CPU {
 
     fn execute(&mut self, inst: &Instruction, mem: &mut Memory) {
         match inst.inst {
+            InstructionTypes::BRK => {
+                println!("CPU> Instruction: BRK");
+                //TODO: More than this
+                self.reg_ps_bc = 1;
+                self.reg_pc += 1;
+            },
             InstructionTypes::LDA_IMMEDIATE => {
-                println!("Instruction: LDA Immediate");
+                println!("CPU> Instruction: LDA Immediate");
                 self.reg_accum = inst.data[0] as u8;
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
             },
             InstructionTypes::STA_ABSOLUTE => {
-                println!("Instruction: STA Absolute");
+                println!("CPU> Instruction: STA Absolute");
                 if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum) {
                     self.update_status_regs(self.reg_accum);
                     self.reg_pc += 3;
@@ -148,19 +164,19 @@ impl CPU {
                 }
             },
             InstructionTypes::ASL_ACCUMULATOR => {
-                println!("Instruction: ASL Accumulator");
+                println!("CPU> Instruction: ASL Accumulator");
                 self.reg_accum <<= self.reg_accum; //TODO: Is this right?
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 1;
             },
             InstructionTypes::ADC_IMMEDIATE => {
-                println!("Instruction: ADC Immediate");
+                println!("CPU> Instruction: ADC Immediate");
                 self.reg_accum += inst.data[0] as u8;
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 2;
             },
             InstructionTypes::ROL_IMMEDIATE => {
-                println!("Instruction: ROL Immediate");
+                println!("CPU> Instruction: ROL Immediate");
                 self.reg_accum <<= 1; //TODO: Is this right?
                 self.update_status_regs(self.reg_accum);
                 self.reg_pc += 1;
@@ -173,6 +189,8 @@ impl CPU {
         if let Ok(inst) = self.fetch(mem_ref) {
             //Excute the instuction
             self.execute(&inst, mem_ref);
+        }else{
+            println!("CPU> Failed to fetch next instruction!");
         }
     }
 }
