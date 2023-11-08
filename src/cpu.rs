@@ -97,6 +97,8 @@ impl CPU {
         }else{
             self.reg_ps_zf = 0;
         }
+
+        //TODO: Set the carry flag appropriately
     }
 
     fn fetch(&self, mem: &Memory) -> Result<Instruction, Error> {
@@ -166,6 +168,7 @@ impl CPU {
                     //TODO: Push onto stack fails
                     println!("CPU> BRK push onto stack failed");
                 }
+                //TODO: Update status regs?
             },
             InstructionTypes::LDA_IMMEDIATE => {
                 println!("CPU> Instruction: LDA Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
