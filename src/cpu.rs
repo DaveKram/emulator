@@ -69,6 +69,12 @@ impl CPU {
         self.do_halt = true;
     }
 
+    pub fn get_status_reg_byte(&self) -> u8 {
+        ((self.reg_ps_nf & 0x1) << 7) | ((self.reg_ps_of & 0x1) << 6) | ((self.reg_ps_un & 0x1) << 5) | ((self.reg_ps_bc & 0x1) << 4)
+        | ((self.reg_ps_dm & 0x1) << 3) | ((self.reg_ps_id & 0x1) << 2) | ((self.reg_ps_zf & 0x1) << 1) 
+        | ((self.reg_ps_cf & 0x1)) 
+    }
+
     fn update_status_regs(&mut self, res: u8) 
     {
         //Reset BRK flag if it was 1 - reg_ps_bc
@@ -147,15 +153,15 @@ impl CPU {
         match inst.inst {
             InstructionTypes::BRK => {
                 println!("CPU> Instruction: BRK - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
-                //TODO: Figure out if this is writing into the right order in memory (note the stack starts at the end and decreases the sp)
+                //Push PC + 2 and status register (with break flag set to 1) to stack
                 let pc_plus_two = self.reg_pc + 2;
-                let extra_byte: u8 = 0x0; //TODO: What should this be
-                let status_reg: u8 = 0; //TODO: Create status register from CPU struct
-                let bytes_to_push_on_stack = vec![(pc_plus_two & 0x00FF) as u8, ((pc_plus_two & 0xFF00) >> 8) as u8, extra_byte, status_reg];
+                self.reg_ps_bc = 1;
+                let bytes_to_push_on_stack = vec![((pc_plus_two & 0xFF00) >> 8) as u8, (pc_plus_two & 0x00FF) as u8, self.get_status_reg_byte()];
+                self.reg_ps_bc = 0;
                 if let Ok(_) = mem.push_onto_stack(self.reg_sp, &bytes_to_push_on_stack) {
                     self.reg_sp -= 3;
                     self.reg_ps_bc = 1;
-                    self.reg_pc += 1; //TODO: Note, this may need to be set before the attempt to actually push it onto the stack? Since the status register is part of the stack data
+                    self.reg_pc += 1;
                 }else{
                     //TODO: Push onto stack fails
                     println!("CPU> BRK push onto stack failed");
