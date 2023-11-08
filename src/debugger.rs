@@ -1,5 +1,6 @@
 use crate::cpu::CPU;
 use crate::memory::Memory;
+use pretty_hex::*;
 use std::io::{stdin, stdout, Write};
 
 pub struct Debugger {
@@ -14,7 +15,8 @@ enum Action {
     QUIT,
     STEP,
     CONTINUE,
-    PRINT_REGS
+    PRINT_REGS,
+    PRINT_MEM
 }
 
 impl Debugger {
@@ -40,6 +42,8 @@ impl Debugger {
         println!("\t\tDisables the debugger and continues executing the CPU");
         println!("\tPRINT REGS");
         println!("\t\tPrints the CPU registers and their values");
+        println!("\tPRINT MEM");
+        println!("\t\tPrints specific memory regions in their hex format");
     }
 
     fn get_next_user_action(&self) -> Action {
@@ -62,6 +66,9 @@ impl Debugger {
                 },
                 "PRINT REGS" => {
                     Action::PRINT_REGS
+                },
+                "PRINT MEM" => {
+                    Action::PRINT_MEM
                 },
                 _ => {
                     Action::UNKNOWN
@@ -101,6 +108,36 @@ impl Debugger {
                         "{0: <10X} | {1: <10X} | {2: <10X} | {3: <10X} | {4: <10X} | {5: <10X} | {6: <10X} | {7: <10X} | {8: <10X} | {9: <10X} | {10: <10X} | {11: <10X} | {12: <10X}",
                         cpu.reg_pc, cpu.reg_sp, cpu.reg_accum, cpu.reg_index_x, cpu.reg_index_y, cpu.reg_ps_cf, cpu.reg_ps_zf, cpu.reg_ps_id, cpu.reg_ps_dm, cpu.reg_ps_bc, cpu.reg_ps_of, cpu.reg_ps_nf, cpu.reg_ps_un
                     );
+                },
+                Action::PRINT_MEM => {
+                    let mut input_string_mem_offset = String::new();
+                    let mut input_string_num_bytes = String::new();
+                    print!("DEBUGGER> Enter memory offset: ");
+                    let _ = stdout().flush();
+                    if let Ok(_) = stdin().read_line(&mut input_string_mem_offset) {
+                        print!("DEBUGGER> Enter number of bytes: ");
+                        let _ = stdout().flush();
+                        if let Ok(_) = stdin().read_line(&mut input_string_num_bytes) {
+                            if let Ok(mem_offset) = input_string_mem_offset.trim().parse::<u16>() {
+                                if let Ok(num_bytes) = input_string_num_bytes.trim().parse::<usize>() {
+                                    //Read num_bytes from mem_offset, and print a formatted hexdump
+                                    if let Ok(bytes_vec) = mem.read_n_bytes(mem_offset, num_bytes, false) {
+                                        println!("{:?}", bytes_vec.hex_dump());
+                                    }else{
+                                        println!("DEBUGGER> PRINT_MEM: Failed to read {:#04x} bytes from offset {:#04x}", num_bytes, mem_offset);
+                                    }
+                                }else{
+                                    println!("DEBUGGER> PRINT_MEM: Unable to interpret number of bytes");
+                                }
+                            }else{
+                                println!("DEBUGGER> PRINT_MEM: Unable to interpret memory offset");
+                            }
+                        }else{
+                            println!("DEBUGGER> PRINT_MEM: Unable to read user input");
+                        }
+                    }else{
+                        println!("DEBUGGER> PRINT_MEM: Unable to read user input");
+                    }
                 }
             }
     }

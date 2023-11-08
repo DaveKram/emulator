@@ -27,10 +27,10 @@ impl Memory {
         }
     }
 
-    pub fn read_byte(&self, addr: u16) -> Result<u8, Error> {
+    pub fn read_byte(&self, addr: u16, prohibit_stack: bool) -> Result<u8, Error> {
         let index = addr as usize;
         if index > MAX_MEMORY_SIZE_BYTES
-            || (index >= (STACK_START as usize) && index <= (STACK_END as usize))
+            || (prohibit_stack && (index >= (STACK_START as usize) && index <= (STACK_END as usize)))
         {
             Err(Error::READ_OUT_OF_BOUNDS)
         } else {
@@ -38,10 +38,10 @@ impl Memory {
         }
     }
 
-    pub fn read_n_bytes(&self, addr: u16, size: usize) -> Result<Vec<u8>, Error> {
+    pub fn read_n_bytes(&self, addr: u16, size: usize, prohibit_stack: bool) -> Result<Vec<u8>, Error> {
         let mut output: Vec<u8> = Vec::new();
         for i in 0..size {
-            if let Ok(byte) = self.read_byte(addr + (i as u16)) {
+            if let Ok(byte) = self.read_byte(addr + (i as u16), prohibit_stack) {
                 output.push(byte);
             } else {
                 return Err(Error::READ_OUT_OF_BOUNDS);
@@ -50,10 +50,10 @@ impl Memory {
         Ok(output)
     }
 
-    pub fn write_byte(&mut self, addr: u16, data: u8) -> Result<u8, Error> {
+    pub fn write_byte(&mut self, addr: u16, data: u8, prohibit_stack: bool) -> Result<u8, Error> {
         let index = addr as usize;
         if index > MAX_MEMORY_SIZE_BYTES
-            || (index >= (STACK_START as usize) && index <= (STACK_END as usize))
+            || (prohibit_stack && (index >= (STACK_START as usize) && index <= (STACK_END as usize)))
         {
             Err(Error::WRITE_OUT_OF_BOUNDS)
         } else {
@@ -62,12 +62,12 @@ impl Memory {
         }
     }
 
-    fn load_program_bytes(&mut self, start_addr: u16, bytes: &Vec<u8>) -> Result<(), Error> {
+    fn load_program_bytes(&mut self, start_addr: u16, bytes: &Vec<u8>, prohibit_stack: bool) -> Result<(), Error> {
         let start_index: usize = start_addr as usize;
         if start_index > MAX_MEMORY_SIZE_BYTES
-            || (start_index >= (STACK_START as usize) && start_index <= (STACK_END as usize))
-            || (start_index + bytes.len() + 1 >= (STACK_START as usize)
-                && start_index + bytes.len() + 1 <= (STACK_END as usize))
+            || (prohibit_stack 
+                && ((start_index >= (STACK_START as usize) && start_index <= (STACK_END as usize))
+                || (start_index + bytes.len() + 1 >= (STACK_START as usize) && start_index + bytes.len() + 1 <= (STACK_END as usize))))
         {
             Err(Error::WRITE_OUT_OF_BOUNDS)
         } else {
@@ -84,13 +84,13 @@ impl Memory {
         }
     }
 
-    pub fn load_program_from_file(&mut self, start_addr: u16, filename: &str) -> Result<(), Error> {
+    pub fn load_program_from_file(&mut self, start_addr: u16, filename: &str, prohibit_stack: bool) -> Result<(), Error> {
         if let Ok(mut f) = File::open(&filename) {
             if let Ok(metadata) = std::fs::metadata(&filename) {
                 let mut buffer: Vec<u8> = vec![0; metadata.len() as usize];
                 if let Ok(_) = f.read(&mut buffer) {
                     //Load the main program
-                    self.load_program_bytes(start_addr, &buffer)
+                    self.load_program_bytes(start_addr, &buffer, prohibit_stack)
                 } else {
                     Err(Error::PROGRAM_SIZE_TOO_LARGE)
                 }

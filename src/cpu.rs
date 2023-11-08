@@ -94,7 +94,7 @@ impl CPU {
     }
 
     fn fetch(&self, mem: &Memory) -> Result<Instruction, Error> {
-        if let Ok(inst) = mem.read_byte(self.reg_pc) {
+        if let Ok(inst) = mem.read_byte(self.reg_pc, true) {
             match inst {
                 0x0 => {
                     //1 bytes total
@@ -102,7 +102,7 @@ impl CPU {
                 }
                 0xA9 => {
                     // 2 bytes total
-                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1) {
+                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1, true) {
                         Ok(Instruction { inst: InstructionTypes::LDA_IMMEDIATE, data: data_bytes, num_cycles: 2 })
                     }else{
                         Err(Error::FETCH_ERROR)
@@ -110,7 +110,7 @@ impl CPU {
                 },
                 0x8D => {
                     // 3 bytes total
-                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 2) {
+                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 2, true) {
                         Ok(Instruction { inst: InstructionTypes::STA_ABSOLUTE, data: data_bytes, num_cycles: 4 })
                     }else{
                         Err(Error::FETCH_ERROR)
@@ -122,7 +122,7 @@ impl CPU {
                 },
                 0x69 => {
                     // 2 bytes total
-                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1) {
+                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 1, true) {
                         Ok(Instruction { inst: InstructionTypes::ADC_IMMEDIATE, data: data_bytes, num_cycles: 2 })
                     }else{
                         Err(Error::FETCH_ERROR)
@@ -147,11 +147,11 @@ impl CPU {
         match inst.inst {
             InstructionTypes::BRK => {
                 println!("CPU> Instruction: BRK - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
-                
                 //TODO: Figure out if this is writing into the right order in memory (note the stack starts at the end and decreases the sp)
                 let pc_plus_two = self.reg_pc + 2;
+                let extra_byte: u8 = 0x0; //TODO: What should this be
                 let status_reg: u8 = 0; //TODO: Create status register from CPU struct
-                let bytes_to_push_on_stack = vec![(pc_plus_two & 0x00FF) as u8, ((pc_plus_two & 0xFF00) >> 8) as u8, status_reg];
+                let bytes_to_push_on_stack = vec![(pc_plus_two & 0x00FF) as u8, ((pc_plus_two & 0xFF00) >> 8) as u8, extra_byte, status_reg];
                 if let Ok(_) = mem.push_onto_stack(self.reg_sp, &bytes_to_push_on_stack) {
                     self.reg_sp -= 3;
                     self.reg_ps_bc = 1;
@@ -169,7 +169,7 @@ impl CPU {
             },
             InstructionTypes::STA_ABSOLUTE => {
                 println!("CPU> Instruction: STA Absolute - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
-                if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum) {
+                if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum, false) {
                     self.update_status_regs(self.reg_accum);
                     self.reg_pc += 3;
                 }else{
