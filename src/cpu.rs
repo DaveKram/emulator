@@ -7,7 +7,10 @@ enum InstructionTypes {
     STA_ABSOLUTE,
     ASL_ACCUMULATOR,
     ADC_IMMEDIATE,
-    ROL_IMMEDIATE
+    ADC_ABSOLUTE,
+    ROL_IMMEDIATE,
+    CLEAR_CARRY,
+    RTS
 }
 
 enum Error {
@@ -144,6 +147,22 @@ impl CPU {
                 0x2A => {
                     // 1 bytes total
                     Ok(Instruction { inst: InstructionTypes::ROL_IMMEDIATE, data: vec![inst], num_cycles: 2 })
+                },
+                0x18 => {
+                    // 1 bytes total
+                    Ok(Instruction { inst: InstructionTypes::CLEAR_CARRY, data: vec![inst], num_cycles: 2 })
+                }
+                0x6D => {
+                    // 3 bytes total
+                    if let Ok(data_bytes) = mem.read_n_bytes(self.reg_pc + 1, 2, true) {
+                        Ok(Instruction { inst: InstructionTypes::ADC_ABSOLUTE, data: data_bytes, num_cycles: 4 })
+                    }else{
+                        Err(Error::FETCH_ERROR)
+                    }
+                },
+                0x60 => {
+                    // 1 bytes total
+                    Ok(Instruction { inst: InstructionTypes::RTS, data: vec![inst], num_cycles: 6 })
                 }
                 _ => {
                     println!("CPU> Unknown instruction. Opcode: {:#04x}", inst);
@@ -212,6 +231,22 @@ impl CPU {
                 let carry_flag_check: u16 = (self.reg_accum as u16) << 1;
                 self.reg_accum <<= 1; //TODO: Is this right?
                 self.update_status_regs(self.reg_accum, carry_flag_check);
+                self.reg_pc += 1;
+            },
+            InstructionTypes::CLEAR_CARRY => {
+                println!("CPU> Instruction: Clear Carry - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                self.reg_ps_cf = 0;
+                self.reg_pc += 1;
+                //TODO: Update status regs?
+            },
+            InstructionTypes::ADC_ABSOLUTE => {
+                println!("CPU> Instruction: ADC Absolute - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                //TODO:
+                self.reg_pc += 3;
+            },
+            InstructionTypes::RTS => {
+                println!("CPU> Instruction: RTS (Return from Subroutine) - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                //TODO:
                 self.reg_pc += 1;
             }
         }
