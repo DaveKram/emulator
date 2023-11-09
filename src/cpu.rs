@@ -75,7 +75,7 @@ impl CPU {
         | ((self.reg_ps_cf & 0x1)) 
     }
 
-    fn update_status_regs(&mut self, res: u8) 
+    fn update_status_regs(&mut self, res: u8, res_wider_carry_check: u16) 
     {
         //Reset BRK flag if it was 1 - reg_ps_bc
         if self.reg_ps_bc == 1 {
@@ -98,7 +98,12 @@ impl CPU {
             self.reg_ps_zf = 0;
         }
 
-        //TODO: Set the carry flag appropriately
+        //Set carry flag if anything is in any bits wider that 0-7
+        if ((res_wider_carry_check & 0xFF00) >> 8) as u8 > 0 {
+            self.reg_ps_cf = 1;
+        }else{
+            self.reg_ps_cf = 0;
+        }
     }
 
     fn fetch(&self, mem: &Memory) -> Result<Instruction, Error> {
@@ -172,14 +177,16 @@ impl CPU {
             },
             InstructionTypes::LDA_IMMEDIATE => {
                 println!("CPU> Instruction: LDA Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                let carry_flag_check: u16 = inst.data[0] as u16;
                 self.reg_accum = inst.data[0] as u8;
-                self.update_status_regs(self.reg_accum);
+                self.update_status_regs(self.reg_accum, carry_flag_check);
                 self.reg_pc += 2;
             },
             InstructionTypes::STA_ABSOLUTE => {
                 println!("CPU> Instruction: STA Absolute - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                let carry_flag_check: u16 = self.reg_accum as u16; //TODO: Is this right?
                 if let Ok(_) = mem.write_byte((inst.data[0] as u16) | ((inst.data[1] as u16) << 8), self.reg_accum, false) {
-                    self.update_status_regs(self.reg_accum);
+                    self.update_status_regs(self.reg_accum, carry_flag_check); //TODO: Is this right?
                     self.reg_pc += 3;
                 }else{
                     //TODO: Write fails?
@@ -188,20 +195,23 @@ impl CPU {
             },
             InstructionTypes::ASL_ACCUMULATOR => {
                 println!("CPU> Instruction: ASL Accumulator - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                let carry_flag_check: u16 = (self.reg_accum as u16) << self.reg_accum as u16;
                 self.reg_accum <<= self.reg_accum; //TODO: Is this right?
-                self.update_status_regs(self.reg_accum);
+                self.update_status_regs(self.reg_accum, carry_flag_check);
                 self.reg_pc += 1;
             },
             InstructionTypes::ADC_IMMEDIATE => {
                 println!("CPU> Instruction: ADC Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                let carry_flag_check: u16 = self.reg_accum as u16 + inst.data[0] as u16;
                 self.reg_accum += inst.data[0] as u8;
-                self.update_status_regs(self.reg_accum);
+                self.update_status_regs(self.reg_accum, carry_flag_check);
                 self.reg_pc += 2;
             },
             InstructionTypes::ROL_IMMEDIATE => {
                 println!("CPU> Instruction: ROL Immediate - Cycles {} - Total Cycles {}", inst.num_cycles, self.total_cycles);
+                let carry_flag_check: u16 = (self.reg_accum as u16) << 1;
                 self.reg_accum <<= 1; //TODO: Is this right?
-                self.update_status_regs(self.reg_accum);
+                self.update_status_regs(self.reg_accum, carry_flag_check);
                 self.reg_pc += 1;
             }
         }
