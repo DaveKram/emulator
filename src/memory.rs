@@ -17,7 +17,10 @@ pub enum Error {
     PROGRAM_SIZE_TOO_LARGE,
     FILE_NOT_FOUND,
     PUSH_ON_STACK_OUT_OF_SPACE,
+    PUSH_ON_STACK_INPUT_EMPTY,
     POP_OFF_STACK_EMPTY,
+    POP_OFF_STACK_REQUESTED_ZERO_BYTES,
+    POP_OFF_STACK_REQUESTED_TOO_MANY_BYTES
 }
 
 impl Memory {
@@ -104,14 +107,14 @@ impl Memory {
 
     pub fn push_onto_stack(&mut self, stack_pointer: u8, bytes: &Vec<u8>) -> Result<(), Error> {
         let start_index = (STACK_END as usize) - ((STACK_END as usize) - (STACK_START as usize + stack_pointer as usize));
-        if start_index - bytes.len() < STACK_START as usize {
+        if bytes.is_empty() {
+            Err(Error::PUSH_ON_STACK_INPUT_EMPTY)
+        }else if start_index - bytes.len() < STACK_START as usize {
             Err(Error::PUSH_ON_STACK_OUT_OF_SPACE)
         } else {
             let mut cur_index = start_index;
             for b in bytes {
                 self.mem[cur_index] = b.clone();
-                //TODO: Remove this debug print
-                println!("{:#04x} at {:#04x}", self.mem[cur_index], cur_index);
                 cur_index -= 1;
             }   
             Ok(())
@@ -119,7 +122,19 @@ impl Memory {
     }
 
     pub fn pop_off_stack(&mut self, stack_pointer: u8, num_bytes: u8) -> Result<Vec<u8>, Error> {
-        //TODO:
-        Err(Error::POP_OFF_STACK_EMPTY)
+        let start_index = (STACK_END as usize) - ((STACK_END as usize) - (STACK_START as usize + stack_pointer as usize));
+        if num_bytes == 0 {
+            Err(Error::POP_OFF_STACK_REQUESTED_ZERO_BYTES)
+        } else if start_index + (num_bytes as usize) > STACK_END as usize {
+            Err(Error::POP_OFF_STACK_REQUESTED_TOO_MANY_BYTES)
+        } else if start_index == (STACK_END as usize) {
+            Err(Error::POP_OFF_STACK_EMPTY)
+        } else {
+            let mut return_vec: Vec<u8> = Vec::new();
+            for cur_index in start_index..(start_index + (num_bytes as usize)) {
+                return_vec.push(self.mem[cur_index].clone());
+            }
+            Ok(return_vec)
+        }
     }
 }

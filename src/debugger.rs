@@ -102,11 +102,11 @@ impl Debugger {
                 Action::PRINT_REGS => {
                     println!(
                         "{0: <10} | {1: <10} | {2: <10} | {3: <10} | {4: <10} | {5: <10} | {6: <10} | {7: <10} | {8: <10} | {9: <10} | {10: <10} | {11: <10} | {12: <10} | {13: <10}",
-                        "PC", "SP", "AC", "IX", "IY", "PS_CF", "PS_ZF", "PS_ID", "PS_DM", "PS_BC", "PS_OF", "PS_NF", "PS_UN", "ALL_STATUS"
+                        "PC", "SP", "AC", "IX", "IY", "N", "V", "-", "B", "D", "I", "Z", "C", "ALL_STATUS"
                     );
                     println!(
                         "{0: <10X} | {1: <10X} | {2: <10X} | {3: <10X} | {4: <10X} | {5: <10X} | {6: <10X} | {7: <10X} | {8: <10X} | {9: <10X} | {10: <10X} | {11: <10X} | {12: <10X} | {13: <10X}",
-                        cpu.reg_pc, cpu.reg_sp, cpu.reg_accum, cpu.reg_index_x, cpu.reg_index_y, cpu.reg_ps_cf, cpu.reg_ps_zf, cpu.reg_ps_id, cpu.reg_ps_dm, cpu.reg_ps_bc, cpu.reg_ps_of, cpu.reg_ps_nf, cpu.reg_ps_un, cpu.get_status_reg_byte()
+                        cpu.reg_pc, cpu.reg_sp, cpu.reg_accum, cpu.reg_index_x, cpu.reg_index_y, cpu.reg_ps_nf, cpu.reg_ps_of, cpu.reg_ps_un, cpu.reg_ps_bc, cpu.reg_ps_dm, cpu.reg_ps_id, cpu.reg_ps_zf, cpu.reg_ps_cf, cpu.get_status_reg_byte()
                     );
                 },
                 Action::PRINT_MEM => {
